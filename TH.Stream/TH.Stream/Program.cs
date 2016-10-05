@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using System.Globalization;
+using Newtonsoft.Json;
 
 namespace TH.Stream
 {
@@ -21,45 +22,25 @@ namespace TH.Stream
             if (file.Exists)
             {
                 List<GameResult> soccerResults = ReadSoccerResults(file.FullName);
-                //List<string[]> FileContents = ReadSoccerResults(file.FullName);
-
-                //string fileContents = ReadFile(file.FullName);
-
-                //string[] fileLines = fileContents.Split(new char[] { '\n' });
-                //foreach (var line in fileLines)
-                //{
-                //    Console.WriteLine(line);
-                //}
-
-                //Console.WriteLine(fileContents);
-
-                //var reader = new StreamReader(file.FullName);
-                //try
-                //{
-                //    Console.SetIn(reader);
-                //    var fileContent = Console.ReadLine(); 
-                //    Console.WriteLine(fileContent);
-                //}
-                //finally
-                //{
-                //    reader.Close();
-                //}
-                //using (var reader = new StreamReader(file.FullName))
-                //{
-                //    Console.SetIn(reader);
-                //    Console.WriteLine(Console.ReadLine());
-                //}
-
-                //string myString= UnicodeEncoding.Unicode.GetString(new byte[] {});
-                //Console.WriteLine(myString);
             }
 
-            //var dirFiles = dirInfo.GetFiles("*.txt");
-            //foreach (var file in dirFiles)
-            //{
-            //    Console.WriteLine(file.Name);
-            //}
-            //Console.ReadLine();
+            fileName = Path.Combine(dirInfo.FullName, "players.json");
+            file= new FileInfo (fileName);
+            if (file.Exists)
+            {
+                List<Player> players = DeserializePlayers(file.FullName);
+                List<Player> topTenPlayers = GetTopTenPlayers(players);
+
+                foreach (var player in topTenPlayers)
+                {
+                    Console.WriteLine(player.FirstName 
+                        + " | " + player.SecondName 
+                        + " | Points: " + player.PointsPerGame);
+                }
+
+                fileName = Path.Combine(dirInfo.FullName, "topten.json");
+                SerializePlayers(fileName, topTenPlayers);
+           }
         }
 
         public static string ReadFile(string fileName)
@@ -70,7 +51,6 @@ namespace TH.Stream
             }
         }
 
-        //public static List<string[]> ReadSoccerResults (string fileName)
         public static List<GameResult> ReadSoccerResults (string fileName)
         {
             //List<string[]> fileContents = new List<string[]>();
@@ -122,6 +102,49 @@ namespace TH.Stream
                 }
             }
             return fileContents;
+        }
+
+        public static List<Player> DeserializePlayers (string fileName)
+        {
+            var players = new List<Player>();
+            var serializer = new JsonSerializer();
+
+            using (var reader = new StreamReader(fileName))
+            using (var jsonReader= new JsonTextReader (reader))
+            {
+                players= serializer.Deserialize<List<Player>>(jsonReader);
+            }
+
+            return players;
+        }
+
+        public static List<Player> GetTopTenPlayers (List<Player> players)
+        {
+            List<Player> topTenPlayers = new List<Player>();
+            players.Sort();
+            //players.Reverse();
+
+            int ii = 1;
+            foreach (var player in players)
+            {
+                topTenPlayers.Add(player);
+
+                if (ii++ == 10)
+                    break;
+            }
+
+            return topTenPlayers;
+        }
+
+        public static void SerializePlayers(string fileName, List<Player> players)
+        {
+            var serializer = new JsonSerializer();
+
+            using (var writer = new StreamWriter(fileName))
+            using (var jsonWriter = new JsonTextWriter(writer))
+            {
+                serializer.Serialize(jsonWriter, players);
+            }
         }
     }
 }
